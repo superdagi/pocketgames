@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fargesirkler</title>
+    <style>
+        body {
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid black;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Tell sirklene</h1>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <audio id="correctSound" src="correct.mp3"></audio> <!-- Lyd for riktig svar -->
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const colors = ["red", "blue", "green"];
+        const correctSound = document.getElementById("correctSound");
+
+        let circles = [];
+        let askedColor = "";
+        let correctAnswer = 0;
+        let answerOptions = [];
+        let score = 0;
+        let mistakes = 0;
+        let buttonPositions = [];
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function generateCircles() {
+            circles = [];
+            for (let i = 0; i < 10; i++) {
+                circles.push({
+                    x: getRandomInt(50, 350),
+                    y: getRandomInt(50, 250),
+                    color: colors[getRandomInt(0, 2)]
+                });
+            }
+        }
+
+        function generateQuestion() {
+            askedColor = colors[getRandomInt(0, 2)];
+            correctAnswer = circles.filter(c => c.color === askedColor).length;
+            let options = new Set([correctAnswer]);
+
+            while (options.size < 3) {
+                options.add(getRandomInt(0, 10));
+            }
+
+            answerOptions = Array.from(options).sort(() => Math.random() - 0.5);
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Tegn sirkler
+            circles.forEach(circle => {
+                ctx.beginPath();
+                ctx.arc(circle.x, circle.y, 20, 0, Math.PI * 2);
+                ctx.fillStyle = circle.color;
+                ctx.fill();
+                ctx.closePath();
+            });
+
+            // Tegn spørsmål
+            ctx.font = "20px Arial";
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            ctx.fillText(`Hvor mange ${askedColor} sirkler?`, canvas.width / 2, 300);
+
+            // Tegn poengsum øverst til høyre
+            ctx.font = "20px Arial";
+            ctx.textAlign = "right";
+            ctx.fillStyle = "blue";
+            ctx.fillText(`Poeng: ${score}`, canvas.width - 10, 30);
+
+            // Tegn feil øverst til venstre
+            ctx.textAlign = "left";
+            ctx.fillStyle = "red";
+            ctx.fillText(`Feil: ${mistakes}`, 10, 30);
+
+            // Tegn svaralternativer som knapper
+            ctx.font = "30px Arial";
+            ctx.textAlign = "center";
+            ctx.fillStyle = "black";
+            buttonPositions = [];
+            answerOptions.forEach((num, index) => {
+                let x = 100 + index * 100;
+                let y = 350;
+                buttonPositions.push({ x, y, value: num });
+                ctx.fillText(num, x, y);
+            });
+        }
+
+        function blinkGreen() {
+            canvas.style.backgroundColor = "lightgreen";
+            setTimeout(() => {
+                canvas.style.backgroundColor = "white";
+            }, 300);
+        }
+
+        function startGame() {
+            generateCircles();
+            generateQuestion();
+            drawGame();
+        }
+
+        canvas.addEventListener("click", function (event) {
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = event.clientX - rect.left;
+            let mouseY = event.clientY - rect.top;
+
+            buttonPositions.forEach(pos => {
+                if (mouseX > pos.x - 20 && mouseX < pos.x + 20 && mouseY > pos.y - 20 && mouseY < pos.y + 10) {
+                    if (pos.value === correctAnswer) {
+                        score++;
+                        correctSound.play();
+                        blinkGreen();
+                        setTimeout(startGame, 500);
+                    } else {
+                        mistakes++;
+                        drawGame();
+                    }
+                }
+            });
+        });
+
+        startGame();
+    </script>
+
+</body>
+</html>
