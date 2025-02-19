@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bokstavspill - Canvas</title>
+    <style>
+        body {
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid black;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Bokstavspill</h1>
+    <canvas id="gameCanvas" width="400" height="300"></canvas>
+
+    <audio id="correctSound" src="correct.mp3"></audio> <!-- Lyd for riktig svar -->
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        const correctSound = document.getElementById("correctSound");
+
+        let correctLetter = "";
+        let options = [];
+        let score = 0;
+        let mistakes = 0;
+        let positions = [];
+
+        function getRandomLetter() {
+            return alphabet[Math.floor(Math.random() * alphabet.length)];
+        }
+
+        function generateOptions(correct) {
+            let optionSet = new Set();
+            optionSet.add(correct.toLowerCase());
+
+            while (optionSet.size < 5) {
+                optionSet.add(String.fromCharCode(97 + Math.floor(Math.random() * 26))); 
+            }
+
+            return Array.from(optionSet).sort(() => Math.random() - 0.5);
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Tegn stor bokstav
+            ctx.font = "80px Arial";
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            ctx.fillText(correctLetter, canvas.width / 2, 80);
+
+            // Tegn poengsum øverst til høyre
+            ctx.font = "20px Arial";
+            ctx.textAlign = "right";
+            ctx.fillStyle = "blue";
+            ctx.fillText(`Poeng: ${score}`, canvas.width - 10, 30);
+
+            // Tegn feil øverst til venstre
+            ctx.textAlign = "left";
+            ctx.fillStyle = "red";
+            ctx.fillText(`Feil: ${mistakes}`, 10, 30);
+
+            // Tegn små bokstaver
+            ctx.font = "40px Arial";
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            positions = [];
+            options.forEach((letter, index) => {
+                let x = 50 + index * 70;
+                let y = 200;
+                positions.push({ x, y, letter });
+                ctx.fillText(letter, x, y);
+            });
+        }
+
+        function blinkGreen() {
+            canvas.style.backgroundColor = "lightgreen";
+            setTimeout(() => {
+                canvas.style.backgroundColor = "white";
+            }, 300);
+        }
+
+        function startGame() {
+            correctLetter = getRandomLetter();
+            options = generateOptions(correctLetter);
+            drawGame();
+        }
+
+        canvas.addEventListener("click", function (event) {
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = event.clientX - rect.left;
+            let mouseY = event.clientY - rect.top;
+
+            positions.forEach(pos => {
+                if (mouseX > pos.x - 20 && mouseX < pos.x + 20 && mouseY > pos.y - 40 && mouseY < pos.y + 10) {
+                    if (pos.letter === correctLetter.toLowerCase()) {
+                        score++;
+                        correctSound.play(); // Spill av lyd
+                        blinkGreen(); // Blink grønt ved riktig
+                        setTimeout(startGame, 500); // Vent litt før ny bokstav vises
+                    } else {
+                        mistakes++;
+                        drawGame(); // Oppdater feil-telleren
+                    }
+                }
+            });
+        });
+
+        startGame();
+    </script>
+
+</body>
+</html>
