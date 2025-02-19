@@ -1,1 +1,156 @@
-Hello World
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pytagoras-spill</title>
+    <style>
+        body {
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid black;
+            background-color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Pytagoras' Teorem</h1>
+    <div style="border: 2px solid black; display: inline-block; padding: 10px;">
+        <h2>Feil: <span id="mistakes">0</span> &nbsp;&nbsp; a² = b² + c² &nbsp;&nbsp; Poeng: <span id="score">0</span></h2>
+        <p id="sideLengths"></p>
+    </div>
+    <br>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    
+    <audio id="correctSound" src="correct.mp3"></audio>
+    <audio id="wrongSound" src="wrong.mp3"></audio>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const correctSound = document.getElementById("correctSound");
+        const wrongSound = document.getElementById("wrongSound");
+        const sideLengthsText = document.getElementById("sideLengths");
+        const scoreText = document.getElementById("score");
+        const mistakesText = document.getElementById("mistakes");
+
+        let score = 0;
+        let mistakes = 0;
+        let missingSide, correctAnswer;
+        let answers = [];
+        let allowRetry = true;
+
+        function generateQuestion() {
+            allowRetry = true;
+            let a, b, c;
+            let missingType = Math.floor(Math.random() * 3);
+            
+            do {
+                b = Math.floor(Math.random() * 10) + 3;
+                c = Math.floor(Math.random() * 10) + 3;
+                a = Math.sqrt(b ** 2 + c ** 2);
+            } while (!Number.isInteger(a));
+            
+            if (missingType === 0) {
+                missingSide = "a";
+                correctAnswer = a;
+            } else if (missingType === 1) {
+                a = Math.floor(a);
+                b = Math.sqrt(a ** 2 - c ** 2);
+                missingSide = "b";
+                correctAnswer = b;
+            } else {
+                a = Math.floor(a);
+                c = Math.sqrt(a ** 2 - b ** 2);
+                missingSide = "c";
+                correctAnswer = c;
+            }
+            
+            let incorrectAnswers = new Set();
+            while (incorrectAnswers.size < 2) {
+                let wrongAnswer = correctAnswer + (Math.random() * 4 - 2);
+                if (wrongAnswer > 0 && wrongAnswer !== correctAnswer) {
+                    incorrectAnswers.add(wrongAnswer);
+                }
+            }
+
+            answers = [correctAnswer, ...incorrectAnswers];
+            answers.sort(() => Math.random() - 0.5);
+            
+            sideLengthsText.innerText = `a = ${missingSide === "a" ? "?" : Math.round(a)}, b = ${missingSide === "b" ? "?" : Math.round(b)}, c = ${missingSide === "c" ? "?" : Math.round(c)}`;
+            drawGame(a, b, c);
+        }
+
+        function drawGame(a, b, c) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.beginPath();
+            ctx.moveTo(100, 300);
+            ctx.lineTo(100 + c * 10, 300);
+            ctx.lineTo(100, 300 - b * 10);
+            ctx.closePath();
+            ctx.stroke();
+            
+            ctx.font = "18px Arial";
+            ctx.fillStyle = "black";
+            ctx.fillText(`a = ${missingSide === "a" ? "?" : Math.round(a)}`, 150, 180);
+            ctx.fillText(`b = ${missingSide === "b" ? "?" : Math.round(b)}`, 30, 280);
+            ctx.fillText(`c = ${missingSide === "c" ? "?" : Math.round(c)}`, 180, 320);
+            
+            ctx.font = "20px Arial";
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            let answerButtons = [];
+            answers.forEach((ans, index) => {
+                let x = 100 + index * 100;
+                let y = 370;
+                answerButtons.push({ x, y, ans });
+                ctx.fillText(ans.toFixed(2), x, y);
+            });
+            canvas.answerButtons = answerButtons;
+        }
+
+        function blink(color, callback) {
+            canvas.style.backgroundColor = color;
+            setTimeout(() => {
+                canvas.style.backgroundColor = "white";
+                if (callback) callback();
+            }, 300);
+        }
+
+        canvas.addEventListener("click", function (event) {
+            if (!allowRetry) return;
+            
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = event.clientX - rect.left;
+            let mouseY = event.clientY - rect.top;
+            
+            canvas.answerButtons.forEach(button => {
+                let textWidth = ctx.measureText(button.ans.toFixed(2)).width;
+                if (mouseX > button.x - textWidth / 2 && mouseX < button.x + textWidth / 2 &&
+                    mouseY > button.y - 20 && mouseY < button.y + 10) {
+                    
+                    if (button.ans === correctAnswer) {
+                        score++;
+                        scoreText.innerText = score;
+                        correctSound.play();
+                        blink("lightgreen", generateQuestion);
+                        allowRetry = false;
+                    } else {
+                        mistakes++;
+                        mistakesText.innerText = mistakes;
+                        wrongSound.play();
+                        blink("lightcoral");
+                    }
+                }
+            });
+        });
+
+        generateQuestion();
+    </script>
+
+</body>
+</html>
