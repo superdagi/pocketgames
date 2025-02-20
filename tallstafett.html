@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tallstafett Spill</title>
+    <style>
+        body {
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid black;
+            background-color: white;
+            cursor: pointer;
+            display: block;
+            margin: auto;
+        }
+        #gameContainer {
+            border: 2px solid black;
+            display: inline-block;
+            padding: 10px;
+            position: relative;
+            background-color: white;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tallstafett Spill</h1>
+    <div id="gameContainer">
+        <div id="info">
+            <p>Feil: <span id="mistakes">0</span> &nbsp;&nbsp; Poeng: <span id="score">0</span></p>
+            <p id="questionText">Trykk på tallene i stigende rekkefølge</p>
+        </div>
+        <canvas id="gameCanvas" width="500" height="500"></canvas>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreText = document.getElementById("score");
+        const mistakesText = document.getElementById("mistakes");
+        const gameContainer = document.getElementById("gameContainer");
+        
+        let score = 0;
+        let mistakes = 0;
+        let numbers = [];
+        let nextNumber;
+        
+        function generateNumbers() {
+            numbers = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            let totalNumbers = 3 + Math.floor(Math.random() * 8); // Mellom 3 og 10 tall
+            let startNumber = Math.floor(Math.random() * 5) + 1; // Startnummer mellom 1 og 5
+            nextNumber = startNumber; // Setter riktig startpunkt for klikk
+            
+            let positions = [];
+            
+            for (let i = startNumber; i < startNumber + totalNumbers; i++) {
+                let x, y, overlap;
+                do {
+                    x = Math.random() * (canvas.width - 40) + 20;
+                    y = Math.random() * (canvas.height - 250) + 180; // Økt buffer for å unngå tekstområdet
+                    overlap = positions.some(pos => Math.hypot(pos.x - x, pos.y - y) < 50);
+                } while (overlap);
+                
+                positions.push({ x, y });
+                numbers.push({ value: i, x, y });
+            }
+            drawNumbers();
+        }
+        
+        function drawNumbers() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = "20px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            
+            numbers.forEach(num => {
+                ctx.beginPath();
+                ctx.arc(num.x, num.y, 20, 0, Math.PI * 2);
+                ctx.fillStyle = "lightblue";
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = "black";
+                ctx.fillText(num.value, num.x, num.y);
+            });
+        }
+        
+        canvas.addEventListener("click", function(event) {
+            let rect = canvas.getBoundingClientRect();
+            let mouseX = event.clientX - rect.left;
+            let mouseY = event.clientY - rect.top;
+            
+            let clickedNumber = numbers.find(num => Math.hypot(num.x - mouseX, num.y - mouseY) < 20);
+            
+            if (clickedNumber) {
+                if (clickedNumber.value === nextNumber) {
+                    numbers = numbers.filter(num => num.value !== clickedNumber.value);
+                    nextNumber++;
+                    drawNumbers();
+                    
+                    if (numbers.length === 0) {
+                        score++;
+                        scoreText.innerText = score;
+                        gameContainer.style.backgroundColor = "lightgreen";
+                        setTimeout(() => {
+                            gameContainer.style.backgroundColor = "white";
+                            generateNumbers();
+                        }, 300);
+                    }
+                } else {
+                    mistakes++;
+                    mistakesText.innerText = mistakes;
+                    gameContainer.style.backgroundColor = "lightcoral";
+                    setTimeout(() => gameContainer.style.backgroundColor = "white", 300);
+                }
+            }
+        });
+        
+        generateNumbers();
+    </script>
+</body>
+</html>
